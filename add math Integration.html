@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integral Quest - Integration Mastery Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- KaTeX for crisp mathematical typesetting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMath()"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 60%, #020617);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .game-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+        }
+        .game-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+        }
+        .game-btn:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+        }
+        .game-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-card {
+            animation: fadeSlide 0.3s ease-out forwards;
+        }
+        .katex {
+            font-size: 1.08em;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6 flex flex-col items-center">
+
+    <!-- Top HUD Header -->
+    <header class="w-full max-w-6xl bg-slate-900/90 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 mb-5 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-indigo-700 flex items-center justify-center font-extrabold text-lg text-white shadow-lg border border-teal-300/30">
+                $\int dx$
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    Integral Quest
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">Calculus Mastery</span>
+                </h1>
+                <p class="text-xs text-slate-400">From Basic Antiderivatives to Area & Volumes of Revolution</p>
+            </div>
+        </div>
+
+        <!-- Score, Streak & Formula Sheet Trigger -->
+        <div class="flex items-center gap-2.5 sm:gap-3">
+            <button onclick="toggleFormulaModal(true)" class="game-btn px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-teal-300 flex items-center gap-1.5">
+                <span>📘</span> Integral Cheat Sheet
+            </button>
+            <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5 text-center">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Streak</div>
+                <div id="hudStreak" class="text-sm sm:text-base font-extrabold text-orange-400 mono">🔥 0</div>
+            </div>
+            <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5 text-center">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">XP Score</div>
+                <div id="hudScore" class="text-sm sm:text-base font-extrabold text-emerald-400 mono">0 XP</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Difficulty Tier Selector -->
+    <nav class="w-full max-w-6xl grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mb-5" id="tierSelector">
+        <button onclick="selectTier(0)" id="tier-btn-0" class="game-btn p-3 rounded-xl border text-left transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">Tier 1 • Easy</span>
+                <span id="tier-badge-0" class="text-xs mono text-slate-400">0/5</span>
+            </div>
+            <div class="text-sm font-bold text-white mt-0.5">Basic Integration</div>
+        </button>
+
+        <button onclick="selectTier(1)" id="tier-btn-1" class="game-btn p-3 rounded-xl border text-left transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-sky-400">Tier 2 • Medium</span>
+                <span id="tier-badge-1" class="text-xs mono text-slate-400">0/5</span>
+            </div>
+            <div class="text-sm font-bold text-white mt-0.5">Exponentials & Logs</div>
+        </button>
+
+        <button onclick="selectTier(2)" id="tier-btn-2" class="game-btn p-3 rounded-xl border text-left transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">Tier 3 • Hard</span>
+                <span id="tier-badge-2" class="text-xs mono text-slate-400">0/5</span>
+            </div>
+            <div class="text-sm font-bold text-white mt-0.5">Substitution (Algebra)</div>
+        </button>
+
+        <button onclick="selectTier(3)" id="tier-btn-3" class="game-btn p-3 rounded-xl border text-left transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-rose-400">Tier 4 • Challenge</span>
+                <span id="tier-badge-3" class="text-xs mono text-slate-400">0/5</span>
+            </div>
+            <div class="text-sm font-bold text-white mt-0.5">Area Under Graphs</div>
+        </button>
+
+        <button onclick="selectTier(4)" id="tier-btn-4" class="game-btn p-3 rounded-xl border text-left transition col-span-2 sm:col-span-1">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-purple-400">Tier 5 • Master</span>
+                <span id="tier-badge-4" class="text-xs mono text-slate-400">0/5</span>
+            </div>
+            <div class="text-sm font-bold text-white mt-0.5">Volume of Revolution</div>
+        </button>
+    </nav>
+
+    <!-- Main Arena Grid -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-5" id="mainArenaGrid">
+
+        <!-- Left Side: Interactive Problem & Step-by-Step Workspace (6 cols) -->
+        <section id="problemCol" class="lg:col-span-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl flex flex-col justify-between animate-card">
+            <div>
+                <!-- Question Header & Sub-question Switcher -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800">
+                    <span id="tierLabel" class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Tier 1 • Easy
+                    </span>
+                    <div id="questionTabs" class="flex flex-wrap items-center gap-1.5">
+                        <!-- Rendered dynamically for Q A..E -->
+                    </div>
+                </div>
+
+                <!-- Problem Statement Box -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 mb-4">
+                    <h2 id="questionTitle" class="text-base sm:text-lg font-bold text-white mb-2">Question Title</h2>
+                    <div id="questionPrompt" class="text-sm text-slate-200 leading-relaxed space-y-2">
+                        <!-- Rendered dynamically -->
+                    </div>
+                    <!-- Visual Reference Diagram Card (Moved here directly under the question for Tier 4 & Tier 5) -->
+                    <div id="visualDiagramWrapper" class="hidden mt-3 w-full h-52 sm:h-56 bg-slate-950 rounded-xl border border-indigo-500/40 p-2 relative overflow-hidden">
+                        <canvas id="diagramCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Interactive Step Inputs / Multiple Choice -->
+                <div id="interactionArea" class="space-y-3">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Feedback Banner & Action Buttons -->
+            <div class="mt-5 pt-4 border-t border-slate-800">
+                <div id="feedbackBox" class="hidden mb-3 p-3.5 rounded-xl border text-xs sm:text-sm leading-relaxed"></div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <button onclick="revealHint()" class="game-btn px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs sm:text-sm font-bold">
+                        💡 Show Hint
+                    </button>
+                    <button onclick="checkAnswer()" id="submitBtn" class="game-btn px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-extrabold">
+                        Verify Answer ✓
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Side: Live Scratchpad & Worked Solution (6 cols) -->
+        <section id="rightCol" class="lg:col-span-6 flex flex-col gap-5">
+
+            <!-- Dynamic Visual Canvas Card -->
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                    <span id="visualPanelTitle" class="text-xs font-bold uppercase tracking-wider text-teal-400">Student Scratchpad & Annotation</span>
+                    <div id="scratchpadToolbar" class="flex items-center gap-1.5">
+                        <button onclick="setPenColor('#38bdf8')" title="Sky Pen" class="w-4 h-4 rounded-full bg-sky-400 border border-white/60"></button>
+                        <button onclick="setPenColor('#34d399')" title="Emerald Pen" class="w-4 h-4 rounded-full bg-emerald-400 border border-white/60"></button>
+                        <button onclick="setPenColor('#fbbf24')" title="Amber Pen" class="w-4 h-4 rounded-full bg-amber-400 border border-white/60"></button>
+                        <button onclick="setPenColor('#f8fafc')" title="White Pen" class="w-4 h-4 rounded-full bg-slate-100 border border-white/60"></button>
+                        <button onclick="togglePadExpand()" id="expandPadBtn" class="ml-1 text-[11px] font-semibold px-2.5 py-0.5 rounded bg-indigo-900/70 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40">⛶ Expand Pad</button>
+                        <button onclick="clearScratchpad()" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600">Clear</button>
+                    </div>
+                </div>
+                <!-- Compact Setup Guide Banner (Shown on Tier 4 & Tier 5) -->
+                <div id="setupBanner" class="hidden mb-2.5 p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-200 flex items-center justify-between gap-2">
+                    <span id="setupBannerText" class="font-medium"></span>
+                    <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold shrink-0">Formula Setup</span>
+                </div>
+                <div id="canvasWrapper" class="w-full h-[30rem] sm:h-[34rem] bg-slate-950 rounded-xl border border-slate-800 p-2 relative overflow-hidden">
+                    <canvas id="mathCanvas" class="touch-none cursor-crosshair"></canvas>
+                </div>
+                <p id="visualNote" class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+                    Use your mouse, stylus, or finger to write out integral steps, substitutions, limits, and algebra.
+                </p>
+            </div>
+
+            <!-- Step-by-Step Worked Solution Card (Unlocks after solving) -->
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex-1">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Exam Mark Scheme Walkthrough</span>
+                    <span id="solutionLockBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Solve to Unlock</span>
+                </div>
+                <div id="workedSolutionBox" class="text-xs text-slate-300 space-y-2 bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 leading-relaxed">
+                    <p class="text-slate-500 italic">Complete the question on the left to unlock the full step-by-step mark scheme breakdown.</p>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Integration Rules Cheat Sheet Modal -->
+    <div id="formulaModal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-teal-500/40 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-card">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <h3 class="text-lg font-extrabold text-teal-400">📘 Integration Quick Reference</h3>
+                <button onclick="toggleFormulaModal(false)" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <div class="space-y-2.5 text-xs sm:text-sm text-slate-200">
+                <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                    <div class="font-bold text-emerald-400">1. Power Rule: $\int ax^n\,dx = \dfrac{ax^{n+1}}{n+1} + C \quad (n \neq -1)$</div>
+                    <div class="text-slate-400 text-xs mt-0.5">Add $1$ to the exponent, divide by the new exponent, and always include $+C$ for indefinite integrals.</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                    <div class="font-bold text-sky-400">2. Exponentials & Logs: $\int e^{kx}\,dx = \dfrac{1}{k}e^{kx} + C$ &nbsp;|&nbsp; $\int \dfrac{1}{x}\,dx = \ln|x| + C$</div>
+                    <div class="text-slate-400 text-xs mt-0.5">More generally, $\int \dfrac{f'(x)}{f(x)}\,dx = \ln|f(x)| + C$.</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                    <div class="font-bold text-amber-400">3. Substitution: $\int f(g(x))g'(x)\,dx = \int f(u)\,du$</div>
+                    <div class="text-slate-400 text-xs mt-0.5">Set $u = g(x)$, compute $du = g'(x)\,dx$, and transform limits when definite.</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                    <div class="font-bold text-rose-400">4. Area Under Curve: $A = \int_a^b y\,dx$</div>
+                    <div class="text-slate-400 text-xs mt-0.5">Regions below the $x$-axis give negative integrals; take the absolute magnitude for physical area.</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                    <div class="font-bold text-purple-400">5. Volumes of Revolution ($360^\circ$)</div>
+                    <div class="text-slate-400 text-xs mt-0.5">
+                        About $x$-axis: $V_x = \pi \int_a^b y^2\,dx$ &nbsp;|&nbsp; About $y$-axis: $V_y = \pi \int_c^d x^2\,dy$
+                    </div>
+                </div>
+            </div>
+            <button onclick="toggleFormulaModal(false)" class="game-btn mt-4 w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm">
+                Back to Challenge
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CURRICULUM QUESTION BANK (5 TIERS x 5 Qs)
+        // ==========================================
+        const tiers = [
+            {
+                name: "Tier 1 • Easy",
+                badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                xp: 50,
+                questions: [
+                    {
+                        title: "Q1A: Basic Polynomial Integration",
+                        prompt: `
+                            <p>Find the indefinite integral with respect to $x$:</p>
+                            <p class="font-bold text-emerald-300 text-base">$\\displaystyle \\int (8x^3 - 6x^2 + 4x - 5)\\,dx$</p>
+                        `,
+                        hint: "Increase each exponent by $1$ and divide by the new exponent: $\\frac{8x^4}{4} = 2x^4$, $\\frac{6x^3}{3} = 2x^3$, etc.",
+                        type: "mcq",
+                        options: [
+                            "$2x^4 - 2x^3 + 2x^2 - 5x + C$",
+                            "$24x^2 - 12x + 4 + C$",
+                            "$2x^4 - 3x^3 + 2x^2 - 5x + C$",
+                            "$8x^4 - 6x^3 + 4x^2 - 5x + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Apply $\\int ax^n\\,dx = \\frac{ax^{n+1}}{n+1}$ to each term:</p>
+                            <p class="pl-2">$\\bullet\\; \\int 8x^3\\,dx = \\frac{8x^4}{4} = 2x^4$</p>
+                            <p class="pl-2">$\\bullet\\; \\int (-6x^2)\\,dx = -\\frac{6x^3}{3} = -2x^3$</p>
+                            <p class="pl-2">$\\bullet\\; \\int 4x\\,dx = \\frac{4x^2}{2} = 2x^2$, and $\\int (-5)\\,dx = -5x$</p>
+                            <p><strong>Final Answer:</strong> <span class="font-bold text-white">$2x^4 - 2x^3 + 2x^2 - 5x + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q1B: Negative & Fractional Indices",
+                        prompt: `
+                            <p>Evaluate the indefinite integral (where $x &gt; 0$):</p>
+                            <p class="font-bold text-emerald-300 text-base">$\\displaystyle \\int \\left(\\dfrac{6}{x^3} + 9\\sqrt{x}\\right)\\,dx$</p>
+                        `,
+                        hint: "Rewrite $\\frac{6}{x^3} = 6x^{-3}$ and $9\\sqrt{x} = 9x^{\\frac{1}{2}}$. Adding $1$ to $-3$ gives $-2$, and adding $1$ to $\\frac{1}{2}$ gives $\\frac{3}{2}$.",
+                        type: "mcq",
+                        options: [
+                            "$-3x^{-2} + 6x^{\\frac{3}{2}} + C$",
+                            "$-18x^{-4} + \\frac{9}{2}x^{-\\frac{1}{2}} + C$",
+                            "$-2x^{-2} + 6x^{\\frac{3}{2}} + C$",
+                            "$-3x^{-2} + \\frac{27}{2}x^{\\frac{3}{2}} + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Rewrite in index form: <span class="text-emerald-300">$\\int (6x^{-3} + 9x^{\\frac{1}{2}})\\,dx$</span>.</p>
+                            <p><strong>Step 2:</strong> Integrate each power:</p>
+                            <p class="pl-2">$\\bullet\\; \\frac{6x^{-2}}{-2} = -3x^{-2}$</p>
+                            <p class="pl-2">$\\bullet\\; \\frac{9x^{\\frac{3}{2}}}{\\frac{3}{2}} = 9 \\cdot \\frac{2}{3}x^{\\frac{3}{2}} = 6x^{\\frac{3}{2}}$</p>
+                            <p><strong>Final Answer:</strong> <span class="font-bold text-white">$-3x^{-2} + 6x^{\\frac{3}{2}} + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q1C: Expanding Brackets Before Integrating",
+                        prompt: `
+                            <p>Find the indefinite integral:</p>
+                            <p class="font-bold text-emerald-300 text-base">$\\displaystyle \\int x(3x - 4)(x + 2)\\,dx$</p>
+                        `,
+                        hint: "Expand $(3x - 4)(x + 2) = 3x^2 + 2x - 8$, multiply by $x$ to get $3x^3 + 2x^2 - 8x$, then integrate.",
+                        type: "mcq",
+                        options: [
+                            "$\\frac{3}{4}x^4 + \\frac{2}{3}x^3 - 4x^2 + C$",
+                            "$\\frac{3}{4}x^4 + x^3 - 4x^2 + C$",
+                            "$9x^2 + 4x - 8 + C$",
+                            "$\\frac{3}{4}x^4 + \\frac{2}{3}x^3 - 8x^2 + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Expand completely into a polynomial:</p>
+                            <p class="pl-2">$x(3x^2 + 6x - 4x - 8) = x(3x^2 + 2x - 8) = 3x^3 + 2x^2 - 8x$</p>
+                            <p><strong>Step 2:</strong> Integrate term by term:</p>
+                            <p class="pl-2">$\\int (3x^3 + 2x^2 - 8x)\\,dx = \\mathbf{\\dfrac{3}{4}x^4 + \\dfrac{2}{3}x^3 - 4x^2 + C}$</p>
+                        `
+                    },
+                    {
+                        title: "Q1D: Splitting a Rational Fraction by a Monomial",
+                        prompt: `
+                            <p>Find <span class="font-bold text-emerald-300">$\\displaystyle \\int \\dfrac{10x^4 - 6x^2 + 4}{x^2}\\,dx$</span> for $x \\neq 0$.</p>
+                        `,
+                        hint: "Divide each term in the numerator by $x^2$ first: $10x^2 - 6 + 4x^{-2}$.",
+                        type: "mcq",
+                        options: [
+                            "$\\frac{10}{3}x^3 - 6x - \\frac{4}{x} + C$",
+                            "$\\frac{10}{3}x^3 - 6x + \\frac{4}{x} + C$",
+                            "$20x - 8x^{-3} + C$",
+                            "$\\frac{10}{3}x^3 - 6x - 4x^{-3} + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Divide each term by $x^2$:</p>
+                            <p class="pl-2">$\\dfrac{10x^4}{x^2} - \\dfrac{6x^2}{x^2} + \\dfrac{4}{x^2} = 10x^2 - 6 + 4x^{-2}$</p>
+                            <p><strong>Step 2:</strong> Integrate each term:</p>
+                            <p class="pl-2">$\\dfrac{10}{3}x^3 - 6x + \\dfrac{4x^{-1}}{-1} + C = \\mathbf{\\dfrac{10}{3}x^3 - 6x - \\dfrac{4}{x} + C}$</p>
+                        `
+                    },
+                    {
+                        title: "Q1E: Finding a Curve Equation from $\\frac{dy}{dx}$",
+                        prompt: `
+                            <p>A curve passes through the point <span class="font-bold text-emerald-300">$(2, 11)$</span> and satisfies <span class="font-bold text-emerald-300">$\\dfrac{dy}{dx} = 6x^2 - 4x + 1$</span>.</p>
+                            <p>Find the constant of integration $C$ and evaluate $y$ when $x = 3$.</p>
+                        `,
+                        hint: "Integrate to get $y = 2x^3 - 2x^2 + x + C$. Substitute $x = 2, y = 11$ to find $C$, then substitute $x = 3$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "c_val", label: "Constant of integration $C$:", answer: 1 },
+                            { id: "y_at_3", label: "Value of $y$ when $x = 3$:", answer: 40 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Integrate $\\frac{dy}{dx}$: <span class="text-emerald-300">$y = \\int (6x^2 - 4x + 1)\\,dx = 2x^3 - 2x^2 + x + C$</span>.</p>
+                            <p><strong>Step 2:</strong> Substitute $(2, 11)$: $11 = 2(8) - 2(4) + 2 + C = 10 + C \\implies \\mathbf{C = 1}$.</p>
+                            <p><strong>Step 3:</strong> When $x = 3$: $y = 2(27) - 2(9) + 3 + 1 = 54 - 18 + 4 = \\mathbf{40}$.</p>
+                        `
+                    }
+                ]
+            },
+            {
+                name: "Tier 2 • Medium",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                xp: 75,
+                questions: [
+                    {
+                        title: "Q2A: Integrating Natural Exponential Functions $e^{kx}$",
+                        prompt: `
+                            <p>Find the indefinite integral:</p>
+                            <p class="font-bold text-sky-300 text-base">$\\displaystyle \\int \\left(6e^{3x} - 4e^{-2x} + e^x\\right)\\,dx$</p>
+                        `,
+                        hint: "Use $\\int e^{kx}\\,dx = \\frac{1}{k}e^{kx} + C$. Remember dividing by $-2$ changes $-4$ into $+2$!",
+                        type: "mcq",
+                        options: [
+                            "$2e^{3x} + 2e^{-2x} + e^x + C$",
+                            "$18e^{3x} + 8e^{-2x} + e^x + C$",
+                            "$2e^{3x} - 2e^{-2x} + e^x + C$",
+                            "$6e^{3x} + 4e^{-2x} + e^x + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Apply $\\int e^{kx}\\,dx = \\frac{1}{k}e^{kx}$ to each exponential term:</p>
+                            <p class="pl-2">$\\bullet\\; \\int 6e^{3x}\\,dx = \\frac{6}{3}e^{3x} = 2e^{3x}$</p>
+                            <p class="pl-2">$\\bullet\\; \\int (-4e^{-2x})\\,dx = \\frac{-4}{-2}e^{-2x} = +2e^{-2x}$</p>
+                            <p class="pl-2">$\\bullet\\; \\int e^x\\,dx = e^x$</p>
+                            <p><strong>Final Answer:</strong> <span class="font-bold text-white">$2e^{3x} + 2e^{-2x} + e^x + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q2B: Integrating Linear Reciprocals into Natural Logarithms",
+                        prompt: `
+                            <p>Find the indefinite integral (for $x &gt; 2$):</p>
+                            <p class="font-bold text-sky-300 text-base">$\\displaystyle \\int \\left(\\dfrac{5}{x} + \\dfrac{6}{3x - 2}\\right)\\,dx$</p>
+                        `,
+                        hint: "Remember $\\int \\frac{1}{ax + b}\\,dx = \\frac{1}{a}\\ln|ax + b| + C$. Here $a = 3$, so $\\frac{6}{3} = 2$.",
+                        type: "mcq",
+                        options: [
+                            "$5\\ln|x| + 2\\ln|3x - 2| + C$",
+                            "$5\\ln|x| + 6\\ln|3x - 2| + C$",
+                            "$5\\ln|x| + 18\\ln|3x - 2| + C$",
+                            "$-5x^{-2} - 18(3x - 2)^{-2} + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Integrate $\\frac{5}{x}$ to get <span class="text-sky-300">$5\\ln|x|$</span>.</p>
+                            <p><strong>Step 2:</strong> For $\\int \\frac{6}{3x - 2}\\,dx$, divide by the inner derivative $3$:</p>
+                            <p class="pl-2">$\\dfrac{6}{3}\\ln|3x - 2| = 2\\ln|3x - 2|$</p>
+                            <p><strong>Final Answer:</strong> <span class="font-bold text-white">$5\\ln|x| + 2\\ln|3x - 2| + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q2C: Definite Integral with Natural Exponentials",
+                        prompt: `
+                            <p>Evaluate the definite integral to <strong>$2$ decimal places</strong>:</p>
+                            <p class="font-bold text-sky-300 text-base">$\\displaystyle \\int_0^2 \\left(4e^{0.5x} + 1\\right)\\,dx$</p>
+                        `,
+                        hint: "The antiderivative is $\\frac{4}{0.5}e^{0.5x} + x = 8e^{0.5x} + x$. Evaluate at $x = 2$ ($8e^1 + 2$) and subtract $x = 0$ ($8e^0 + 0 = 8$). Use $e \\approx 2.71828$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "def_exp", label: "Value of definite integral (to 2 d.p.):", answer: 15.75 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Find the antiderivative: <span class="text-sky-300">$\\Big[8e^{0.5x} + x\\Big]_0^2$</span>.</p>
+                            <p><strong>Step 2:</strong> Substitute upper and lower limits:</p>
+                            <p class="pl-2">Upper ($x = 2$): $8e^1 + 2 \\approx 8(2.71828) + 2 = 23.746$</p>
+                            <p class="pl-2">Lower ($x = 0$): $8e^0 + 0 = 8(1) + 0 = 8$</p>
+                            <p><strong>Final Answer:</strong> $23.746 - 8 = \\mathbf{15.75}$ (exact: $8e - 6$)</p>
+                        `
+                    },
+                    {
+                        title: "Q2D: Rational Split Leading to Natural Logarithm",
+                        prompt: `
+                            <p>Simplify and integrate with respect to $x$ ($x &gt; 0$):</p>
+                            <p class="font-bold text-sky-300 text-base">$\\displaystyle \\int \\dfrac{4x^2 + 3x - 7}{x}\\,dx$</p>
+                        `,
+                        hint: "Split the fraction first: $\\frac{4x^2}{x} + \\frac{3x}{x} - \\frac{7}{x} = 4x + 3 - \\frac{7}{x}$, then integrate each term.",
+                        type: "mcq",
+                        options: [
+                            "$2x^2 + 3x - 7\\ln|x| + C$",
+                            "$4x^2 + 3x - 7\\ln|x| + C$",
+                            "$2x^2 + 3x + \\frac{7}{x^2} + C$",
+                            "$\\ln|4x^2 + 3x - 7| + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Divide each numerator term by $x$:</p>
+                            <p class="pl-2">$\\dfrac{4x^2 + 3x - 7}{x} = 4x + 3 - \\dfrac{7}{x}$</p>
+                            <p><strong>Step 2:</strong> Integrate term by term:</p>
+                            <p class="pl-2">$\\int \\left(4x + 3 - \\dfrac{7}{x}\\right)\\,dx = \\mathbf{2x^2 + 3x - 7\\ln|x| + C}$</p>
+                        `
+                    },
+                    {
+                        title: "Q2E: Definite Logarithmic Integral",
+                        prompt: `
+                            <p>Evaluate the definite integral to <strong>$2$ decimal places</strong>:</p>
+                            <p class="font-bold text-sky-300 text-base">$\\displaystyle \\int_1^5 \\dfrac{4}{2x - 1}\\,dx$</p>
+                        `,
+                        hint: "Antiderivative is $\\frac{4}{2}\\ln|2x - 1| = 2\\ln|2x - 1|$. Evaluate $2\\ln(9) - 2\\ln(1)$ (note $\\ln(1) = 0$ and $\\ln(9) \\approx 2.1972$).",
+                        type: "inputs",
+                        fields: [
+                            { id: "def_ln", label: "Value of definite integral (to 2 d.p.):", answer: 4.39 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Integrate: <span class="text-sky-300">$\\Big[2\\ln|2x - 1|\\Big]_1^5$</span>.</p>
+                            <p><strong>Step 2:</strong> Apply limits:</p>
+                            <p class="pl-2">$2\\ln(2(5) - 1) - 2\\ln(2(1) - 1) = 2\\ln(9) - 2\\ln(1)$</p>
+                            <p><strong>Final Answer:</strong> Since $\\ln(1) = 0$, $2\\ln(9) \\approx 2(2.19722) = \\mathbf{4.39}$</p>
+                        `
+                    }
+                ]
+            },
+            {
+                name: "Tier 3 • Hard",
+                badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+                xp: 100,
+                questions: [
+                    {
+                        title: "Q3A: Algebraic Substitution with Composite Powers",
+                        prompt: `
+                            <p>Using the substitution <span class="font-bold text-amber-300">$u = x^2 + 1$</span>, find the indefinite integral:</p>
+                            <p class="font-bold text-amber-300 text-base">$\\displaystyle \\int 6x(x^2 + 1)^4\\,dx$</p>
+                        `,
+                        hint: "With $u = x^2 + 1$, $du = 2x\\,dx$, so $6x\\,dx = 3\\,du$. Then integrate $\\int 3u^4\\,du$.",
+                        type: "mcq",
+                        options: [
+                            "$\\dfrac{3}{5}(x^2 + 1)^5 + C$",
+                            "$\\dfrac{6}{5}(x^2 + 1)^5 + C$",
+                            "$3(x^2 + 1)^5 + C$",
+                            "$\\dfrac{3}{4}(x^2 + 1)^4 + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Let <span class="text-amber-300">$u = x^2 + 1 \\implies \\frac{du}{dx} = 2x \\implies 6x\\,dx = 3\\,du$</span>.</p>
+                            <p><strong>Step 2:</strong> Rewrite the integral in terms of $u$:</p>
+                            <p class="pl-2">$\\int 3u^4\\,du = \\dfrac{3u^5}{5} + C$</p>
+                            <p><strong>Step 3:</strong> Substitute back $u = x^2 + 1$: <span class="font-bold text-white">$\\dfrac{3}{5}(x^2 + 1)^5 + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q3B: Definite Substitution with Square Root Surds",
+                        prompt: `
+                            <p>Using the substitution <span class="font-bold text-amber-300">$u = 2x + 1$</span>, evaluate the definite integral:</p>
+                            <p class="font-bold text-amber-300 text-base">$\\displaystyle \\int_0^4 3\\sqrt{2x + 1}\\,dx$</p>
+                        `,
+                        hint: "$du = 2\\,dx \\implies dx = \\frac{1}{2}du$. New limits: when $x = 0, u = 1$; when $x = 4, u = 9$. Integrate $\\int_1^9 \\frac{3}{2}u^{\\frac{1}{2}}\\,du$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "sub_surd", label: "Exact value of definite integral:", answer: 26 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Set $u = 2x + 1 \\implies dx = \\frac{1}{2}du$. Transform limits: $x = 0 \\to u = 1$, and $x = 4 \\to u = 9$.</p>
+                            <p><strong>Step 2:</strong> Integrate in $u$: <span class="text-amber-300">$\\int_1^9 \\frac{3}{2}u^{\\frac{1}{2}}\\,du = \\Big[\\frac{3}{2} \\cdot \\frac{2}{3}u^{\\frac{3}{2}}\\Big]_1^9 = \\Big[u^{\\frac{3}{2}}\\Big]_1^9$</span>.</p>
+                            <p><strong>Final Answer:</strong> $9^{\\frac{3}{2}} - 1^{\\frac{3}{2}} = 27 - 1 = \\mathbf{26}$</p>
+                        `
+                    },
+                    {
+                        title: "Q3C: Substitution with Linear Factor Outside Root",
+                        prompt: `
+                            <p>Use the substitution <span class="font-bold text-amber-300">$u = x - 2$</span> (so $x = u + 2$) to evaluate:</p>
+                            <p class="font-bold text-amber-300 text-base">$\\displaystyle \\int_2^6 x\\sqrt{x - 2}\\,dx$</p>
+                        `,
+                        hint: "With $u = x - 2$, $du = dx$, limits become $u = 0$ to $u = 4$, and integrand becomes $(u + 2)u^{\\frac{1}{2}} = u^{\\frac{3}{2}} + 2u^{\\frac{1}{2}}$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "sub_lin", label: "Value of definite integral (to 2 d.p.):", answer: 23.47 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Let $u = x - 2 \\implies x = u + 2$ and $du = dx$. Limits: $x = 2 \\to u = 0$, $x = 6 \\to u = 4$.</p>
+                            <p><strong>Step 2:</strong> Expand integrand: $\\int_0^4 (u + 2)u^{\\frac{1}{2}}\\,du = \\int_0^4 \\left(u^{\\frac{3}{2}} + 2u^{\\frac{1}{2}}\\right)\\,du$.</p>
+                            <p><strong>Step 3:</strong> Integrate: $\\Big[\\frac{2}{5}u^{\\frac{5}{2}} + \\frac{4}{3}u^{\\frac{3}{2}}\\Big]_0^4 = \\frac{2}{5}(32) + \\frac{4}{3}(8) = 12.8 + 10.667 = \\mathbf{23.47}$ ($\\frac{352}{15}$).</p>
+                        `
+                    },
+                    {
+                        title: "Q3D: Algebraic Rational Substitution",
+                        prompt: `
+                            <p>Using the substitution <span class="font-bold text-amber-300">$u = x^3 + 4$</span>, find the indefinite integral:</p>
+                            <p class="font-bold text-amber-300 text-base">$\\displaystyle \\int \\dfrac{9x^2}{(x^3 + 4)^3}\\,dx$</p>
+                        `,
+                        hint: "$du = 3x^2\\,dx \\implies 9x^2\\,dx = 3\\,du$. Integrate $\\int 3u^{-3}\\,du = \\frac{3u^{-2}}{-2} + C$.",
+                        type: "mcq",
+                        options: [
+                            "$-\\dfrac{3}{2(x^3 + 4)^2} + C$",
+                            "$-\\dfrac{9}{2(x^3 + 4)^2} + C$",
+                            "$\\dfrac{3}{2(x^3 + 4)^2} + C$",
+                            "$-\\dfrac{3}{4(x^3 + 4)^4} + C$"
+                        ],
+                        correctIdx: 0,
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Set <span class="text-amber-300">$u = x^3 + 4 \\implies du = 3x^2\\,dx \\implies 9x^2\\,dx = 3\\,du$</span>.</p>
+                            <p><strong>Step 2:</strong> Rewrite and integrate:</p>
+                            <p class="pl-2">$\\int 3u^{-3}\\,du = \\dfrac{3u^{-2}}{-2} + C = -\\dfrac{3}{2u^2} + C$</p>
+                            <p><strong>Final Answer:</strong> <span class="font-bold text-white">$-\\dfrac{3}{2(x^3 + 4)^2} + C$</span></p>
+                        `
+                    },
+                    {
+                        title: "Q3E: Definite Rational Substitution",
+                        prompt: `
+                            <p>Using <span class="font-bold text-amber-300">$u = x^2 + 3$</span>, evaluate the definite integral:</p>
+                            <p class="font-bold text-amber-300 text-base">$\\displaystyle \\int_1^3 \\dfrac{4x}{(x^2 + 3)^2}\\,dx$</p>
+                        `,
+                        hint: "$du = 2x\\,dx \\implies 4x\\,dx = 2\\,du$. Limits change from $x \\in [1, 3]$ to $u \\in [4, 12]$. Evaluate $\\Big[-2u^{-1}\\Big]_4^{12}$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "sub_rat_def", label: "Value of definite integral (to 2 d.p.):", answer: 0.33 }
+                        ],
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Let $u = x^2 + 3 \\implies 4x\\,dx = 2\\,du$. Limits: $x = 1 \\to u = 4$, $x = 3 \\to u = 12$.</p>
+                            <p><strong>Step 2:</strong> Integrate: <span class="text-amber-300">$\\int_4^{12} 2u^{-2}\\,du = \\Big[-\\dfrac{2}{u}\\Big]_4^{12}$</span>.</p>
+                            <p><strong>Final Answer:</strong> $-\\dfrac{2}{12} - \\left(-\\dfrac{2}{4}\\right) = -\\dfrac{1}{6} + \\dfrac{1}{2} = \\dfrac{1}{3} \\approx \\mathbf{0.33}$</p>
+                        `
+                    }
+                ]
+            },
+            {
+                name: "Tier 4 • Challenge",
+                badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+                xp: 150,
+                questions: [
+                    {
+                        title: "Q4A: Area Under a Quadratic Curve (Algebra)",
+                        prompt: `
+                            <p>Find the exact area of the finite region bounded by the curve <span class="font-bold text-rose-300">$y = 6x - x^2$</span> and the $x$-axis between $x = 0$ and $x = 6$.</p>
+                        `,
+                        hint: "The curve lies above the $x$-axis on $[0, 6]$. Compute $\\int_0^6 (6x - x^2)\\,dx = \\Big[3x^2 - \\frac{1}{3}x^3\\Big]_0^6$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "area_4a", label: "Total enclosed area (square units):", answer: 36 }
+                        ],
+                        setupBanner: "Algebraic Region: A = ∫₀⁶ (6x - x²) dx  (Curve ≥ 0 on [0, 6])",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Set up the definite integral from $x = 0$ to $x = 6$:</p>
+                            <p class="pl-2">$A = \\int_0^6 (6x - x^2)\\,dx = \\Big[3x^2 - \\dfrac{1}{3}x^3\\Big]_0^6$</p>
+                            <p><strong>Step 2:</strong> Evaluate at limits:</p>
+                            <p class="pl-2">$A = \\left(3(36) - \\dfrac{216}{3}\\right) - 0 = 108 - 72 = \\mathbf{36\\text{ square units}}$</p>
+                        `
+                    },
+                    {
+                        title: "Q4B: Region Crossing the $x$-Axis (Algebra)",
+                        prompt: `
+                            <p>The curve <span class="font-bold text-rose-300">$y = x^2 - 4$</span> crosses the $x$-axis at $x = 2$. Find the <strong>total shaded area</strong> bounded by the curve, the $x$-axis, and the lines $x = 0$ and $x = 3$.</p>
+                        `,
+                        hint: "Split at $x = 2$! On $[0, 2]$ the curve is below the $x$-axis ($|\\int_0^2 (x^2 - 4)\\,dx| = \\frac{16}{3}$), and on $[2, 3]$ it is above ($\\int_2^3 (x^2 - 4)\\,dx = \\frac{7}{3}$).",
+                        type: "inputs",
+                        fields: [
+                            { id: "area_4b", label: "Total positive area (to 2 d.p.):", answer: 7.67 }
+                        ],
+                        setupBanner: "Split at Root x = 2: Total Area = |∫₀² (x² - 4) dx| + ∫₂³ (x² - 4) dx",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Region below $x$-axis ($0 \\le x \\le 2$):</p>
+                            <p class="pl-2">$\\int_0^2 (x^2 - 4)\\,dx = \\Big[\\frac{1}{3}x^3 - 4x\\Big]_0^2 = \\frac{8}{3} - 8 = -\\frac{16}{3} \\implies \\text{Area}_1 = \\frac{16}{3}$</p>
+                            <p><strong>Step 2:</strong> Region above $x$-axis ($2 \\le x \\le 3$):</p>
+                            <p class="pl-2">$\\int_2^3 (x^2 - 4)\\,dx = \\Big[\\frac{1}{3}x^3 - 4x\\Big]_2^3 = (9 - 12) - \\left(-\\frac{16}{3}\\right) = \\frac{7}{3}$</p>
+                            <p><strong>Final Answer:</strong> $\\dfrac{16}{3} + \\dfrac{7}{3} = \\dfrac{23}{3} \\approx \\mathbf{7.67\\text{ square units}}$</p>
+                        `
+                    },
+                    {
+                        title: "Q4C: Area Between a Line and a Parabola (Algebra)",
+                        prompt: `
+                            <p>Find the exact area enclosed between the line <span class="font-bold text-rose-300">$y = 2x + 3$</span> and the curve <span class="font-bold text-rose-300">$y = x^2$</span>.</p>
+                        `,
+                        hint: "Find intersections: $x^2 = 2x + 3 \\implies (x - 3)(x + 1) = 0 \\implies x = -1, 3$. Integrate $\\int_{-1}^3 (2x + 3 - x^2)\\,dx$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "area_4c", label: "Enclosed area between curves (to 2 d.p.):", answer: 10.67 }
+                        ],
+                        setupBanner: "Intersections: x² = 2x + 3 ⇒ x = -1, 3  |  Area = ∫₋₁³ (Top - Bottom) dx",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Solve $x^2 = 2x + 3 \\implies x^2 - 2x - 3 = 0 \\implies x = -1$ and $x = 3$.</p>
+                            <p><strong>Step 2:</strong> Integrate (Upper Line $-$ Lower Curve):</p>
+                            <p class="pl-2">$A = \\int_{-1}^3 (2x + 3 - x^2)\\,dx = \\Big[x^2 + 3x - \\dfrac{1}{3}x^3\\Big]_{-1}^3$</p>
+                            <p><strong>Step 3:</strong> Evaluate: $(9 + 9 - 9) - \\left(1 - 3 + \\frac{1}{3}\\right) = 9 - \\left(-\\frac{5}{3}\\right) = \\dfrac{32}{3} \\approx \\mathbf{10.67}$</p>
+                        `
+                    },
+                    {
+                        title: "Q4D: Area Under an Exponential & Algebraic Curve",
+                        prompt: `
+                            <p>Find the area under the curve <span class="font-bold text-rose-300">$y = 3e^x + 2x$</span> bounded by the $x$-axis and the vertical lines $x = 0$ and $x = 2$ (to <strong>$2$ decimal places</strong>).</p>
+                        `,
+                        hint: "Integrate $\\int_0^2 (3e^x + 2x)\\,dx = \\Big[3e^x + x^2\\Big]_0^2 = (3e^2 + 4) - (3e^0 + 0) = 3e^2 + 1$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "area_4d", label: "Area under curve (to 2 d.p.):", answer: 23.17 }
+                        ],
+                        setupBanner: "Exponential + Algebra: A = ∫₀² (3eˣ + 2x) dx = [3eˣ + x²]₀²",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Integrate: <span class="text-rose-300">$A = \\int_0^2 (3e^x + 2x)\\,dx = \\Big[3e^x + x^2\\Big]_0^2$</span>.</p>
+                            <p><strong>Step 2:</strong> Substitute limits:</p>
+                            <p class="pl-2">$A = (3e^2 + 2^2) - (3e^0 + 0^2) = 3e^2 + 4 - 3 = 3e^2 + 1$</p>
+                            <p><strong>Final Answer:</strong> $3(7.38906) + 1 = \\mathbf{23.17\\text{ square units}}$</p>
+                        `
+                    },
+                    {
+                        title: "Q4E: Area Involving Natural Logarithm & Rational Algebra",
+                        prompt: `
+                            <p>Find the area bounded by the curve <span class="font-bold text-rose-300">$y = \\dfrac{4}{x} + x$</span>, the $x$-axis, and the lines $x = 1$ and $x = 4$ (to <strong>$2$ decimal places</strong>).</p>
+                        `,
+                        hint: "Integrate $\\int_1^4 \\left(\\frac{4}{x} + x\\right)\\,dx = \\Big[4\\ln|x| + \\frac{1}{2}x^2\\Big]_1^4 = (4\\ln 4 + 8) - (4\\ln 1 + 0.5)$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "area_4e", label: "Area under curve (to 2 d.p.):", answer: 13.05 }
+                        ],
+                        setupBanner: "Rational + Algebra: A = ∫₁⁴ (4/x + x) dx = [4 ln|x| + ½x²]₁⁴",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Integrate: <span class="text-rose-300">$A = \\int_1^4 \\left(\\dfrac{4}{x} + x\\right)\\,dx = \\Big[4\\ln|x| + \\dfrac{1}{2}x^2\\Big]_1^4$</span>.</p>
+                            <p><strong>Step 2:</strong> Substitute limits ($\\ln 1 = 0$ and $\\ln 4 \\approx 1.38629$):</p>
+                            <p class="pl-2">$A = (4\\ln 4 + 8) - (0 + 0.5) = 4(1.38629) + 7.5 = 5.545 + 7.5 = \\mathbf{13.05}$</p>
+                        `
+                    }
+                ]
+            },
+            {
+                name: "Tier 5 • Master",
+                badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+                xp: 200,
+                questions: [
+                    {
+                        title: "Q5A: Volume of Revolution About the $x$-Axis (Linear)",
+                        prompt: `
+                            <p>The line <span class="font-bold text-purple-300">$y = 2x + 1$</span> between $x = 0$ and $x = 3$ is rotated $360^\\circ$ about the <strong>$x$-axis</strong>.</p>
+                            <p>Find the exact volume generated in the form $k\\pi$, and enter the value of $k$.</p>
+                        `,
+                        hint: "Use $V_x = \\pi \\int_0^3 y^2\\,dx = \\pi \\int_0^3 (2x + 1)^2\\,dx = \\pi \\int_0^3 (4x^2 + 4x + 1)\\,dx$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "vol_5a", label: "Exact coefficient $k$ (where Volume $= k\\pi$):", answer: 57 }
+                        ],
+                        setupBanner: "x-Axis Rotation: V = π ∫₀³ y² dx = π ∫₀³ (4x² + 4x + 1) dx",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Square $y$: $y^2 = (2x + 1)^2 = 4x^2 + 4x + 1$.</p>
+                            <p><strong>Step 2:</strong> Integrate and multiply by $\\pi$:</p>
+                            <p class="pl-2">$V = \\pi \\int_0^3 (4x^2 + 4x + 1)\\,dx = \\pi \\Big[\\dfrac{4}{3}x^3 + 2x^2 + x\\Big]_0^3$</p>
+                            <p><strong>Final Answer:</strong> $\\pi(36 + 18 + 3) = \\mathbf{57\\pi} \\implies k = \\mathbf{57}$</p>
+                        `
+                    },
+                    {
+                        title: "Q5B: Volume of Revolution About the $x$-Axis (Surd Curve)",
+                        prompt: `
+                            <p>The region bounded by the curve <span class="font-bold text-purple-300">$y = \\sqrt{4 - x^2}$</span> and the $x$-axis between $x = 0$ and $x = 2$ is rotated $360^\\circ$ about the <strong>$x$-axis</strong> (forming a hemisphere).</p>
+                            <p>Find the volume as $k\\pi$ (enter $k$ to <strong>$2$ decimal places</strong>).</p>
+                        `,
+                        hint: "Notice $y^2 = 4 - x^2$! Integrate $V = \\pi \\int_0^2 (4 - x^2)\\,dx = \\pi \\Big[4x - \\frac{1}{3}x^3\\Big]_0^2$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "vol_5b", label: "Coefficient $k$ (to 2 d.p., where Volume $= k\\pi$):", answer: 5.33 }
+                        ],
+                        setupBanner: "x-Axis Rotation: V = π ∫₀² (√(4 - x²))² dx = π ∫₀² (4 - x²) dx",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Square $y$: <span class="text-purple-300">$y^2 = (\\sqrt{4 - x^2})^2 = 4 - x^2$</span>.</p>
+                            <p><strong>Step 2:</strong> Integrate from $x = 0$ to $x = 2$:</p>
+                            <p class="pl-2">$V = \\pi \\int_0^2 (4 - x^2)\\,dx = \\pi \\Big[4x - \\dfrac{1}{3}x^3\\Big]_0^2 = \\pi\\left(8 - \\dfrac{8}{3}\\right) = \\dfrac{16}{3}\\pi$</p>
+                            <p><strong>Final Answer:</strong> $k = \\dfrac{16}{3} \\approx \\mathbf{5.33}$</p>
+                        `
+                    },
+                    {
+                        title: "Q5C: Volume of Revolution About the $y$-Axis (Parabola)",
+                        prompt: `
+                            <p>The curve <span class="font-bold text-purple-300">$y = x^2$</span> between $y = 0$ and $y = 4$ is rotated $360^\\circ$ about the <strong>$y$-axis</strong> (forming a paraboloid bowl).</p>
+                            <p>Find the exact volume in the form $k\\pi$, and enter $k$.</p>
+                        `,
+                        hint: "For rotation about the $y$-axis, use $V_y = \\pi \\int_0^4 x^2\\,dy$. Since $y = x^2$, substitute $x^2 = y$ directly!",
+                        type: "inputs",
+                        fields: [
+                            { id: "vol_5c", label: "Exact coefficient $k$ (where Volume $= k\\pi$):", answer: 8 }
+                        ],
+                        setupBanner: "y-Axis Rotation: V = π ∫₀⁴ x² dy  (Substitute x² = y)",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Express $x^2$ in terms of $y$: <span class="text-purple-300">$y = x^2 \\implies x^2 = y$</span>.</p>
+                            <p><strong>Step 2:</strong> Integrate with respect to $y$ from $y = 0$ to $y = 4$:</p>
+                            <p class="pl-2">$V_y = \\pi \\int_0^4 y\\,dy = \\pi \\Big[\\dfrac{1}{2}y^2\\Big]_0^4 = \\pi\\left(\\dfrac{16}{2} - 0\\right) = \\mathbf{8\\pi}$</p>
+                            <p><strong>Final Answer:</strong> $k = \\mathbf{8}$</p>
+                        `
+                    },
+                    {
+                        title: "Q5D: Volume About the $y$-Axis (Rearranging for $x^2$)",
+                        prompt: `
+                            <p>The region bounded by the curve <span class="font-bold text-purple-300">$y = 2\\sqrt{x - 1}$</span>, the $y$-axis, and the lines $y = 0$ and $y = 4$ is rotated $360^\\circ$ about the <strong>$y$-axis</strong>.</p>
+                            <p>Find the volume as $k\\pi$ (enter $k$ to <strong>$2$ decimal places</strong>).</p>
+                        `,
+                        hint: "Square both sides to solve for $x$: $y^2 = 4(x - 1) \\implies x = \\frac{1}{4}y^2 + 1$. Then square $x$ to get $x^2 = \\frac{1}{16}y^4 + \\frac{1}{2}y^2 + 1$ and integrate $\\pi \\int_0^4 x^2\\,dy$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "vol_5d", label: "Coefficient $k$ (to 2 d.p., where Volume $= k\\pi$):", answer: 27.47 }
+                        ],
+                        setupBanner: "y-Axis Rotation: y = 2√(x - 1) ⇒ x = ¼y² + 1  |  V = π ∫₀⁴ x² dy",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Rearrange for $x$: $y^2 = 4(x - 1) \\implies x = \\dfrac{1}{4}y^2 + 1$.</p>
+                            <p><strong>Step 2:</strong> Square $x$: $x^2 = \\left(\\dfrac{1}{4}y^2 + 1\\right)^2 = \\dfrac{1}{16}y^4 + \\dfrac{1}{2}y^2 + 1$.</p>
+                            <p><strong>Step 3:</strong> Integrate from $y = 0$ to $y = 4$:</p>
+                            <p class="pl-2">$V_y = \\pi \\Big[\\dfrac{1}{80}y^5 + \\dfrac{1}{6}y^3 + y\\Big]_0^4 = \\pi\\left(\\dfrac{1024}{80} + \\dfrac{64}{6} + 4\\right) = \\pi(12.8 + 10.667 + 4) = \\mathbf{27.47\\pi}$</p>
+                        `
+                    },
+                    {
+                        title: "Q5E: Volume of a Hollow Ring / Washer About the $x$-Axis",
+                        prompt: `
+                            <p>The region enclosed between the upper line <span class="font-bold text-purple-300">$y = 4$</span> and the lower curve <span class="font-bold text-purple-300">$y = x^2$</span> for $0 \\le x \\le 2$ is rotated $360^\\circ$ about the <strong>$x$-axis</strong>.</p>
+                            <p>Using $V = \\pi \\int_0^2 (y_{\\text{outer}}^2 - y_{\\text{inner}}^2)\\,dx$, find $k$ where $V = k\\pi$ (to <strong>$2$ decimal places</strong>).</p>
+                        `,
+                        hint: "Outer radius squared is $4^2 = 16$; inner radius squared is $(x^2)^2 = x^4$. Integrate $\\pi \\int_0^2 (16 - x^4)\\,dx$.",
+                        type: "inputs",
+                        fields: [
+                            { id: "vol_5e", label: "Coefficient $k$ (to 2 d.p., where Volume $= k\\pi$):", answer: 25.60 }
+                        ],
+                        setupBanner: "Washer Method (x-Axis): V = π ∫₀² (4² - (x²)²) dx = π ∫₀² (16 - x⁴) dx",
+                        walkthrough: `
+                            <p><strong>Step 1:</strong> Set up the washer integral: <span class="text-purple-300">$V = \\pi \\int_0^2 (16 - x^4)\\,dx$</span>.</p>
+                            <p><strong>Step 2:</strong> Integrate and evaluate:</p>
+                            <p class="pl-2">$V = \\pi \\Big[16x - \\dfrac{1}{5}x^5\\Big]_0^2 = \\pi\\left(32 - \\dfrac{32}{5}\\right) = \\pi(32 - 6.4) = \\mathbf{25.60\\pi}$</p>
+                            <p><strong>Final Answer:</strong> $k = \\mathbf{25.60}$</p>
+                        `
+                    }
+                ]
+            }
+        ];
+
+        // ==========================================
+        // GAME STATE (5 TIERS x 5 QUESTIONS)
+        // ==========================================
+        let curTier = 0;
+        let curQ = 0;
+        let score = 0;
+        let streak = 0;
+        let selectedMcq = null;
+        const solvedMap = [
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, false]
+        ];
+
+        // ==========================================
+        // UI RENDERING & NAVIGATION
+        // ==========================================
+        function selectTier(tierIdx) {
+            curTier = tierIdx;
+            curQ = 0;
+            renderAll();
+        }
+
+        function switchQuestion(qIdx) {
+            curQ = qIdx;
+            renderAll();
+        }
+
+        function renderAll() {
+            selectedMcq = null;
+            const tier = tiers[curTier];
+            const qObj = tier.questions[curQ];
+            const isSolved = solvedMap[curTier][curQ];
+
+            // Update Tier Nav Buttons (x/5)
+            for (let i = 0; i < tiers.length; i++) {
+                const btn = document.getElementById(`tier-btn-${i}`);
+                const solvedCount = solvedMap[i].filter(Boolean).length;
+                document.getElementById(`tier-badge-${i}`).textContent = `${solvedCount}/5`;
+                const spanCls = i === 4 ? " col-span-2 sm:col-span-1" : "";
+                if (i === curTier) {
+                    btn.className = `game-btn p-3 rounded-xl border-2 border-teal-400 bg-slate-800/95 text-left transition shadow-lg${spanCls}`;
+                } else {
+                    btn.className = `game-btn p-3 rounded-xl border border-slate-700/80 bg-slate-900/70 hover:bg-slate-800/70 text-left transition${spanCls}`;
+                }
+            }
+
+            // Render Question Tabs (A, B, C, D, E)
+            const letters = ['A', 'B', 'C', 'D', 'E'];
+            const tabsEl = document.getElementById('questionTabs');
+            tabsEl.innerHTML = tier.questions.map((_, idx) => {
+                const qSolved = solvedMap[curTier][idx];
+                const isActive = curQ === idx;
+                let cls = "px-2.5 py-1 rounded-lg text-xs font-bold transition ";
+                if (isActive) {
+                    cls += "bg-teal-600 text-white shadow";
+                } else if (qSolved) {
+                    cls += "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-900/70";
+                } else {
+                    cls += "bg-slate-800 text-slate-300 hover:bg-slate-700";
+                }
+                return `<button onclick="switchQuestion(${idx})" class="${cls}">Q${letters[idx]}${qSolved ? ' ✓' : ''}</button>`;
+            }).join('');
+
+            // Populate Question Card
+            const tierLabel = document.getElementById('tierLabel');
+            tierLabel.textContent = `${tier.name} (+${tier.xp} XP)`;
+            tierLabel.className = `text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${tier.badgeClass}`;
+
+            document.getElementById('questionTitle').textContent = qObj.title;
+            document.getElementById('questionPrompt').innerHTML = qObj.prompt;
+
+            // Hide feedback banner on switch
+            const fb = document.getElementById('feedbackBox');
+            fb.classList.add('hidden');
+
+            // Render MCQ or Blank Numeric Input Fields
+            const area = document.getElementById('interactionArea');
+            if (qObj.type === "mcq") {
+                area.innerHTML = qObj.options.map((opt, idx) => `
+                    <button onclick="pickMcq(${idx})" id="mcq-opt-${idx}"
+                        class="w-full text-left p-3 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-xs sm:text-sm text-slate-200 transition flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs text-teal-300 shrink-0">${String.fromCharCode(65 + idx)}</span>
+                        <span>${opt}</span>
+                    </button>
+                `).join('');
+            } else {
+                area.innerHTML = qObj.fields.map(f => `
+                    <div class="bg-slate-800/60 border border-slate-700/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label for="inp_${f.id}" class="text-xs sm:text-sm font-medium text-slate-200">${f.label}</label>
+                        <input type="number" step="any" id="inp_${f.id}"
+                            class="w-full sm:w-36 bg-slate-950 border border-slate-600 focus:border-teal-400 focus:outline-none rounded-lg px-3 py-1.5 text-sm font-bold text-white mono">
+                    </div>
+                `).join('');
+            }
+
+            // Update Worked Solution Box
+            const solBox = document.getElementById('workedSolutionBox');
+            const lockBadge = document.getElementById('solutionLockBadge');
+            if (isSolved) {
+                lockBadge.textContent = "Unlocked ✓";
+                lockBadge.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                solBox.innerHTML = qObj.walkthrough;
+            } else {
+                lockBadge.textContent = "Solve to Unlock";
+                lockBadge.className = "text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+                solBox.innerHTML = `<p class="text-slate-500 italic">Complete the question on the left to unlock the full step-by-step mark scheme breakdown.</p>`;
+            }
+
+            // Setup Guide Banner & Visual Diagram for Tier 4 & Tier 5
+            const setupBanner = document.getElementById('setupBanner');
+            const setupText = document.getElementById('setupBannerText');
+            const diagWrapper = document.getElementById('visualDiagramWrapper');
+            if (qObj.setupBanner) {
+                setupBanner.classList.remove('hidden');
+                setupText.textContent = qObj.setupBanner;
+            } else {
+                setupBanner.classList.add('hidden');
+            }
+
+            if (curTier >= 3) {
+                diagWrapper.classList.remove('hidden');
+                drawTierDiagram();
+            } else {
+                diagWrapper.classList.add('hidden');
+            }
+
+            const wrapper = document.getElementById('canvasWrapper');
+            wrapper.className = isPadExpanded
+                ? "w-full h-[40rem] bg-slate-950 rounded-xl border border-slate-800 p-2 relative overflow-hidden"
+                : "w-full h-[30rem] sm:h-[34rem] bg-slate-950 rounded-xl border border-slate-800 p-2 relative overflow-hidden";
+
+            document.getElementById('visualNote').textContent = curTier >= 3
+                ? "Inspect the shaded region or 3D rotated solid under the question on the left, then write out your definite integral limits and working above."
+                : "Use your mouse, stylus, or finger to annotate antiderivatives, substitutions, and limit evaluations.";
+
+            initScratchpad();
+            renderMath();
+        }
+
+        function renderMath() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false }
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        function pickMcq(idx) {
+            selectedMcq = idx;
+            const qObj = tiers[curTier].questions[curQ];
+            qObj.options.forEach((_, i) => {
+                const el = document.getElementById(`mcq-opt-${i}`);
+                if (i === idx) {
+                    el.className = "w-full text-left p-3 rounded-xl border-2 border-teal-400 bg-teal-950/60 text-xs sm:text-sm text-white transition flex items-center gap-3";
+                } else {
+                    el.className = "w-full text-left p-3 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-xs sm:text-sm text-slate-200 transition flex items-center gap-3";
+                }
+            });
+        }
+
+        function revealHint() {
+            const qObj = tiers[curTier].questions[curQ];
+            showFeedback('hint', `💡 Hint: ${qObj.hint}`);
+        }
+
+        function checkAnswer() {
+            const tier = tiers[curTier];
+            const qObj = tier.questions[curQ];
+            let isCorrect = false;
+
+            if (qObj.type === "mcq") {
+                if (selectedMcq === null) {
+                    showFeedback('error', 'Please select one of the options (A, B, C, or D) first!');
+                    return;
+                }
+                isCorrect = (selectedMcq === qObj.correctIdx);
+            } else {
+                isCorrect = qObj.fields.every(f => {
+                    const val = parseFloat(document.getElementById(`inp_${f.id}`).value);
+                    return !isNaN(val) && Math.abs(val - f.answer) <= 0.05;
+                });
+            }
+
+            if (isCorrect) {
+                if (!solvedMap[curTier][curQ]) {
+                    solvedMap[curTier][curQ] = true;
+                    score += tier.xp;
+                    streak += 1;
+                }
+                updateHUD();
+                renderAll();
+                showFeedback('success', `🎉 Spot on! You earned +${tier.xp} XP. Check the unlocked Mark Scheme Walkthrough on the right!`);
+            } else {
+                streak = 0;
+                updateHUD();
+                showFeedback('error', '⚠️ Not quite right. Double-check your antiderivative powers, coefficients, or definite limits, or click "Show Hint".');
+            }
+        }
+
+        function showFeedback(type, msg) {
+            const fb = document.getElementById('feedbackBox');
+            fb.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200',
+                'bg-rose-950/80', 'border-rose-500', 'text-rose-200',
+                'bg-amber-950/80', 'border-amber-500', 'text-amber-200');
+
+            if (type === 'success') {
+                fb.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+            } else if (type === 'error') {
+                fb.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-200');
+            } else {
+                fb.classList.add('bg-amber-950/80', 'border-amber-500', 'text-amber-200');
+            }
+            fb.innerHTML = msg;
+            renderMath();
+        }
+
+        function updateHUD() {
+            document.getElementById('hudScore').textContent = `${score} XP`;
+            document.getElementById('hudStreak').textContent = `🔥 ${streak}`;
+        }
+
+        function toggleFormulaModal(show) {
+            const modal = document.getElementById('formulaModal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        // ==========================================
+        // INTERACTIVE SCRATCHPAD CANVAS
+        // ==========================================
+        let penColor = '#38bdf8';
+        let isDrawing = false;
+        let isPadExpanded = false;
+
+        function setPenColor(color) {
+            penColor = color;
+        }
+
+        function togglePadExpand(forceState) {
+            isPadExpanded = typeof forceState === 'boolean' ? forceState : !isPadExpanded;
+            const problemCol = document.getElementById('problemCol');
+            const rightCol = document.getElementById('rightCol');
+            const wrapper = document.getElementById('canvasWrapper');
+            const btn = document.getElementById('expandPadBtn');
+
+            if (isPadExpanded) {
+                problemCol.className = "lg:col-span-12 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl flex flex-col justify-between animate-card";
+                rightCol.className = "lg:col-span-12 flex flex-col gap-5";
+                wrapper.className = "w-full h-[40rem] bg-slate-950 rounded-xl border border-slate-800 p-2 relative overflow-hidden";
+                btn.textContent = "🗗 Split View";
+            } else {
+                problemCol.className = "lg:col-span-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl flex flex-col justify-between animate-card";
+                rightCol.className = "lg:col-span-6 flex flex-col gap-5";
+                wrapper.className = "w-full h-[30rem] sm:h-[34rem] bg-slate-950 rounded-xl border border-slate-800 p-2 relative overflow-hidden";
+                btn.textContent = "⛶ Expand Pad";
+            }
+            if (curTier >= 3) drawTierDiagram();
+            initScratchpad();
+        }
+
+        // ==========================================
+        // TIER 4 (AREA) & TIER 5 (3D SOLID) DIAGRAMS
+        // ==========================================
+        function drawTierDiagram() {
+            const canvas = document.getElementById('diagramCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width <= 0) return;
+            canvas.width = rect.width - 16;
+            canvas.height = rect.height - 16;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            // Subtle background grid
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+            ctx.lineWidth = 1;
+            for (let gx = 20; gx < w; gx += 20) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+            }
+            for (let gy = 20; gy < h; gy += 20) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+            }
+
+            if (curTier === 3) {
+                drawAreaDiagram(ctx, w, h, curQ);
+            } else if (curTier === 4) {
+                drawSolidDiagram(ctx, w, h, curQ);
+            }
+        }
+
+        function drawAxes(ctx, ox, oy, w, h, xLabel = 'x', yLabel = 'y') {
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(18, oy);
+            ctx.lineTo(w - 18, oy);
+            ctx.stroke();
+            // X arrow
+            ctx.beginPath();
+            ctx.moveTo(w - 23, oy - 4);
+            ctx.lineTo(w - 16, oy);
+            ctx.lineTo(w - 23, oy + 4);
+            ctx.stroke();
+
+            // Y-axis
+            ctx.beginPath();
+            ctx.moveTo(ox, h - 14);
+            ctx.lineTo(ox, 14);
+            ctx.stroke();
+            // Y arrow
+            ctx.beginPath();
+            ctx.moveTo(ox - 4, 19);
+            ctx.lineTo(ox, 12);
+            ctx.lineTo(ox + 4, 19);
+            ctx.stroke();
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.fillText(xLabel, w - 14, oy + 14);
+            ctx.fillText(yLabel, ox + 8, 18);
+            ctx.fillText('O', ox - 13, oy + 13);
+        }
+
+        function drawAreaDiagram(ctx, w, h, qIdx) {
+            ctx.save();
+            if (qIdx === 0) {
+                // Q4A: y = 6x - x^2 on [0, 6]
+                const ox = 52, oy = h - 30;
+                const sx = (w - 95) / 6.8, sy = (h - 62) / 10.5;
+                drawAxes(ctx, ox, oy, w, h);
+
+                // Shaded region
+                ctx.fillStyle = 'rgba(244, 63, 94, 0.28)';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy);
+                for (let x = 0; x <= 6; x += 0.1) {
+                    const y = 6 * x - x * x;
+                    ctx.lineTo(ox + x * sx, oy - y * sy);
+                }
+                ctx.lineTo(ox + 6 * sx, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                // Curve stroke
+                ctx.strokeStyle = '#fb7185';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                for (let x = -0.3; x <= 6.3; x += 0.1) {
+                    const y = 6 * x - x * x;
+                    const px = ox + x * sx, py = oy - y * sy;
+                    if (x === -0.3) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#fda4af';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 6x - x²', ox + 3.6 * sx, oy - 8.5 * sy);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('6', ox + 6 * sx - 3, oy + 14);
+                ctx.fillText('Area', ox + 2.5 * sx, oy - 3.2 * sy);
+            } else if (qIdx === 1) {
+                // Q4B: y = x^2 - 4 on [0, 3] (crosses x-axis at x=2)
+                const ox = 54, oy = h * 0.54;
+                const sx = (w - 95) / 3.6, sy = (h - 46) / 11;
+                drawAxes(ctx, ox, oy, w, h);
+
+                // Region 1 below x-axis [0, 2]
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.28)';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy);
+                for (let x = 0; x <= 2; x += 0.05) {
+                    ctx.lineTo(ox + x * sx, oy - (x * x - 4) * sy);
+                }
+                ctx.lineTo(ox + 2 * sx, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                // Region 2 above x-axis [2, 3]
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.30)';
+                ctx.beginPath();
+                ctx.moveTo(ox + 2 * sx, oy);
+                for (let x = 2; x <= 3; x += 0.05) {
+                    ctx.lineTo(ox + x * sx, oy - (x * x - 4) * sy);
+                }
+                ctx.lineTo(ox + 3 * sx, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                // Curve
+                ctx.strokeStyle = '#fb7185';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                for (let x = 0; x <= 3.25; x += 0.05) {
+                    const px = ox + x * sx, py = oy - (x * x - 4) * sy;
+                    if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Dashed boundary x = 3
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.moveTo(ox + 3 * sx, oy);
+                ctx.lineTo(ox + 3 * sx, oy - 5 * sy);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#fde68a';
+                ctx.font = 'bold 10px Inter';
+                ctx.fillText('A₁ (below)', ox + 0.45 * sx, oy + 2.2 * sy);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.fillText('A₂', ox + 2.45 * sx, oy - 1.4 * sy);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('2', ox + 2 * sx - 3, oy + 13);
+                ctx.fillText('3', ox + 3 * sx - 3, oy + 13);
+                ctx.fillStyle = '#fda4af';
+                ctx.fillText('y = x² - 4', ox + 1.15 * sx, oy - 4.1 * sy);
+            } else if (qIdx === 2) {
+                // Q4C: Between y = 2x + 3 and y = x^2 on [-1, 3]
+                const ox = w * 0.34, oy = h - 26;
+                const sx = (w - 75) / 5.2, sy = (h - 48) / 11;
+                drawAxes(ctx, ox, oy, w, h);
+
+                // Shaded region between curves [-1, 3]
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.30)';
+                ctx.beginPath();
+                for (let x = -1; x <= 3; x += 0.08) {
+                    ctx.lineTo(ox + x * sx, oy - (2 * x + 3) * sy);
+                }
+                for (let x = 3; x >= -1; x -= 0.08) {
+                    ctx.lineTo(ox + x * sx, oy - (x * x) * sy);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Parabola y = x^2
+                ctx.strokeStyle = '#fb7185';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                for (let x = -1.6; x <= 3.25; x += 0.08) {
+                    const px = ox + x * sx, py = oy - (x * x) * sy;
+                    if (x === -1.6) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Line y = 2x + 3
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(ox - 1.5 * sx, oy - 0 * sy);
+                ctx.lineTo(ox + 3.4 * sx, oy - 9.8 * sy);
+                ctx.stroke();
+
+                // Intersection dots (-1, 1) and (3, 9)
+                [[-1, 1], [3, 9]].forEach(([ix, iy]) => {
+                    ctx.fillStyle = '#facc15';
+                    ctx.beginPath();
+                    ctx.arc(ox + ix * sx, oy - iy * sy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = 'bold 10px Inter';
+                ctx.fillText('y = 2x + 3', ox + 0.1 * sx, oy - 6.8 * sy);
+                ctx.fillStyle = '#fda4af';
+                ctx.fillText('y = x²', ox + 2.35 * sx, oy - 4.0 * sy);
+                ctx.fillStyle = '#fde047';
+                ctx.fillText('(-1, 1)', ox - 1.45 * sx, oy - 1.6 * sy);
+                ctx.fillText('(3, 9)', ox + 3.05 * sx, oy - 8.8 * sy);
+            } else if (qIdx === 3) {
+                // Q4D: y = 3e^x + 2x on [0, 2]
+                const ox = 56, oy = h - 28;
+                const sx = (w - 105) / 2.5, sy = (h - 50) / 29;
+                drawAxes(ctx, ox, oy, w, h);
+
+                ctx.fillStyle = 'rgba(244, 63, 94, 0.28)';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy);
+                for (let x = 0; x <= 2; x += 0.05) {
+                    const y = 3 * Math.exp(x) + 2 * x;
+                    ctx.lineTo(ox + x * sx, oy - y * sy);
+                }
+                ctx.lineTo(ox + 2 * sx, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#fb7185';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                for (let x = -0.2; x <= 2.1; x += 0.05) {
+                    const y = 3 * Math.exp(x) + 2 * x;
+                    const px = ox + x * sx, py = oy - y * sy;
+                    if (x === -0.2) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#fda4af';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 3eˣ + 2x', ox + 0.35 * sx, oy - 16 * sy);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('0', ox - 10, oy + 14);
+                ctx.fillText('2', ox + 2 * sx - 3, oy + 14);
+                ctx.fillText('3', ox - 14, oy - 3 * sy + 4);
+            } else {
+                // Q4E: y = 4/x + x on [1, 4]
+                const ox = 52, oy = h - 28;
+                const sx = (w - 95) / 4.6, sy = (h - 50) / 6.2;
+                drawAxes(ctx, ox, oy, w, h);
+
+                ctx.fillStyle = 'rgba(20, 184, 166, 0.28)';
+                ctx.beginPath();
+                ctx.moveTo(ox + 1 * sx, oy);
+                for (let x = 1; x <= 4; x += 0.06) {
+                    const y = 4 / x + x;
+                    ctx.lineTo(ox + x * sx, oy - y * sy);
+                }
+                ctx.lineTo(ox + 4 * sx, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#2dd4bf';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                for (let x = 0.72; x <= 4.3; x += 0.06) {
+                    const y = 4 / x + x;
+                    const px = ox + x * sx, py = oy - y * sy;
+                    if (x === 0.72) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#5eead4';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 4/x + x', ox + 1.85 * sx, oy - 4.7 * sy);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('1', ox + 1 * sx - 3, oy + 14);
+                ctx.fillText('4', ox + 4 * sx - 3, oy + 14);
+            }
+            ctx.restore();
+        }
+
+        function drawSolidDiagram(ctx, w, h, qIdx) {
+            ctx.save();
+            if (qIdx === 0) {
+                // Q5A: Frustum of a Cone (y = 2x + 1 rotated about x-axis from x=0 to x=3)
+                const ox = 65, oy = h * 0.52;
+                const len = w - 145;
+                const r1 = 16, r2 = 66;
+                drawAxes(ctx, ox, oy, w, h);
+
+                // Shaded 3D body
+                const grad = ctx.createLinearGradient(ox, oy - r2, ox, oy + r2);
+                grad.addColorStop(0, 'rgba(168, 85, 247, 0.42)');
+                grad.addColorStop(0.5, 'rgba(192, 132, 252, 0.16)');
+                grad.addColorStop(1, 'rgba(126, 34, 206, 0.45)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(ox, oy - r1);
+                ctx.lineTo(ox + len, oy - r2);
+                ctx.ellipse(ox + len, oy, 16, r2, 0, -Math.PI / 2, Math.PI / 2);
+                ctx.lineTo(ox, oy + r1);
+                ctx.ellipse(ox, oy, 6, r1, 0, Math.PI / 2, -Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+
+                // Outlines & ellipses
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ox, oy - r1); ctx.lineTo(ox + len, oy - r2);
+                ctx.moveTo(ox, oy + r1); ctx.lineTo(ox + len, oy + r2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox + len, oy, 16, r2, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox, oy, 6, r1, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Rotation arrow around x-axis
+                ctx.strokeStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(ox + len + 26, oy, 14, -Math.PI * 0.7, Math.PI * 0.7);
+                ctx.stroke();
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 10px Inter';
+                ctx.fillText('360°', ox + len + 16, oy - 18);
+
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 2x + 1 (Frustum)', ox + len * 0.28, oy - r2 * 0.72);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText('x = 3', ox + len - 12, oy + r2 + 14);
+            } else if (qIdx === 1) {
+                // Q5B: Hemisphere (y = sqrt(4 - x^2) rotated about x-axis from x=0 to x=2)
+                const ox = 85, oy = h * 0.52;
+                const R = Math.min(w * 0.42, h * 0.38);
+                drawAxes(ctx, ox, oy, w, h);
+
+                const grad = ctx.createRadialGradient(ox + R * 0.3, oy - R * 0.3, 8, ox, oy, R);
+                grad.addColorStop(0, 'rgba(216, 180, 254, 0.48)');
+                grad.addColorStop(1, 'rgba(126, 34, 206, 0.25)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(ox, oy, R, -Math.PI / 2, Math.PI / 2);
+                ctx.ellipse(ox, oy, 18, R, 0, Math.PI / 2, -Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.arc(ox, oy, R, -Math.PI / 2, Math.PI / 2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox, oy, 18, R, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('Hemisphere (R = 2)', ox + R * 0.35, oy - R * 0.78);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText('x = 2', ox + R + 6, oy + 14);
+            } else if (qIdx === 2) {
+                // Q5C: Paraboloid Bowl (y = x^2 rotated about y-axis from y=0 to y=4)
+                const ox = w * 0.5, oy = h - 28;
+                const bowlH = h - 64, topRx = Math.min(w * 0.26, 95);
+                drawAxes(ctx, ox, oy, w, h);
+
+                const grad = ctx.createLinearGradient(ox - topRx, oy - bowlH, ox + topRx, oy);
+                grad.addColorStop(0, 'rgba(168, 85, 247, 0.38)');
+                grad.addColorStop(1, 'rgba(56, 189, 248, 0.22)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(ox - topRx, oy - bowlH);
+                ctx.quadraticCurveTo(ox - topRx * 0.75, oy, ox, oy);
+                ctx.quadraticCurveTo(ox + topRx * 0.75, oy, ox + topRx, oy - bowlH);
+                ctx.ellipse(ox, oy - bowlH, topRx, 14, 0, 0, Math.PI, true);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(ox - topRx, oy - bowlH);
+                ctx.quadraticCurveTo(ox - topRx * 0.75, oy, ox, oy);
+                ctx.quadraticCurveTo(ox + topRx * 0.75, oy, ox + topRx, oy - bowlH);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox, oy - bowlH, topRx, 14, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 10px Inter';
+                ctx.fillText('↻ y-axis (360°)', ox + 10, 24);
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 4', ox + topRx + 8, oy - bowlH + 4);
+                ctx.fillText('y = x²', ox + topRx * 0.65, oy - bowlH * 0.35);
+            } else if (qIdx === 3) {
+                // Q5D: Flared Cylinder / Vase (y = 2*sqrt(x-1) rotated about y-axis, y in [0, 4])
+                const ox = w * 0.5, oy = h - 28;
+                const vaseH = h - 64, botRx = 32, topRx = Math.min(w * 0.30, 108);
+                drawAxes(ctx, ox, oy, w, h);
+
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.30)';
+                ctx.beginPath();
+                ctx.moveTo(ox - topRx, oy - vaseH);
+                ctx.quadraticCurveTo(ox - botRx * 1.1, oy - vaseH * 0.3, ox - botRx, oy);
+                ctx.lineTo(ox + botRx, oy);
+                ctx.quadraticCurveTo(ox + botRx * 1.1, oy - vaseH * 0.3, ox + topRx, oy - vaseH);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(ox - topRx, oy - vaseH);
+                ctx.quadraticCurveTo(ox - botRx * 1.1, oy - vaseH * 0.3, ox - botRx, oy);
+                ctx.moveTo(ox + topRx, oy - vaseH);
+                ctx.quadraticCurveTo(ox + botRx * 1.1, oy - vaseH * 0.3, ox + botRx, oy);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox, oy - vaseH, topRx, 14, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(ox, oy, botRx, 7, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText('y = 4 (r = 5)', ox + topRx + 6, oy - vaseH + 4);
+                ctx.fillText('r = 1', ox + botRx + 6, oy - 4);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText('↻ y-axis', ox + 10, 24);
+            } else {
+                // Q5E: Hollow Washer / Ring Solid (between y = 4 and y = x^2 rotated about x-axis on [0, 2])
+                const ox = 65, oy = h * 0.52;
+                const len = w - 150, outerR = 64;
+                drawAxes(ctx, ox, oy, w, h);
+
+                // Outer cylinder shading
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.25)';
+                ctx.fillRect(ox, oy - outerR, len, outerR * 2);
+
+                // Inner parabolic cavity (hollow center)
+                ctx.fillStyle = '#020617';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy);
+                for (let t = 0; t <= 1; t += 0.05) {
+                    ctx.lineTo(ox + t * len, oy - (t * t) * outerR);
+                }
+                for (let t = 1; t >= 0; t -= 0.05) {
+                    ctx.lineTo(ox + t * len, oy + (t * t) * outerR);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Outer cylinder borders
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(ox, oy - outerR, len, outerR * 2);
+                ctx.beginPath();
+                ctx.ellipse(ox + len, oy, 15, outerR, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Inner cavity curve outline
+                ctx.strokeStyle = '#38bdf8';
+                ctx.setLineDash([4, 3]);
+                ctx.beginPath();
+                for (let t = 0; t <= 1; t += 0.05) {
+                    const px = ox + t * len, py = oy - (t * t) * outerR;
+                    if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.beginPath();
+                for (let t = 0; t <= 1; t += 0.05) {
+                    const px = ox + t * len, py = oy + (t * t) * outerR;
+                    if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#e9d5ff';
+                ctx.font = 'bold 10px Inter';
+                ctx.fillText('Outer: y = 4', ox + 8, oy - outerR - 5);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.fillText('Hollow cavity: y = x²', ox + len * 0.25, oy + 4);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText('x = 2', ox + len - 10, oy + outerR + 14);
+            }
+            ctx.restore();
+        }
+
+        function initScratchpad() {
+            const canvas = document.getElementById('mathCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 16;
+            canvas.height = rect.height - 16;
+            const ctx = canvas.getContext('2d');
+            drawGridLines(ctx, canvas.width, canvas.height);
+        }
+
+        function clearScratchpad() {
+            initScratchpad();
+        }
+
+        function drawGridLines(ctx, w, h) {
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+            ctx.lineWidth = 1;
+            const step = 24;
+            for (let x = step; x < w; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = step; y < h; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+        }
+
+        function getCanvasPos(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function setupScratchpadEvents() {
+            const canvas = document.getElementById('mathCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            const startDraw = (e) => {
+                isDrawing = true;
+                const pos = getCanvasPos(canvas, e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            };
+
+            const moveDraw = (e) => {
+                if (!isDrawing) return;
+                if (e.cancelable) e.preventDefault();
+                const pos = getCanvasPos(canvas, e);
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            };
+
+            const endDraw = () => {
+                isDrawing = false;
+            };
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', moveDraw);
+            window.addEventListener('mouseup', endDraw);
+
+            canvas.addEventListener('touchstart', startDraw, { passive: false });
+            canvas.addEventListener('touchmove', moveDraw, { passive: false });
+            window.addEventListener('touchend', endDraw);
+        }
+
+        window.addEventListener('resize', () => {
+            if (curTier >= 3) drawTierDiagram();
+            initScratchpad();
+        });
+
+        window.onload = function () {
+            setupScratchpadEvents();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
